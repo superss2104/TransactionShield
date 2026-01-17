@@ -1,0 +1,4 @@
+{
+  "max_transaction_amount": 5000.0,
+  "block_unknown_locations": false
+}

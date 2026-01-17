@@ -656,3 +656,22 @@ body::after {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
 }
+/* =========================================
+   POLICY BLOCK BADGE STYLES (INTEGRATION)
+   ========================================= */
+
+.policy-block-badge {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Policy violation specific styling */
+.status-blocked.policy-violation .status-icon-large {
+    background: linear-gradient(135deg, #f3e8ff 0%, #ddd6fe 100%);
+    color: #7c3aed;
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.4);
+}

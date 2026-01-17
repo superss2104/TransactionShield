@@ -302,6 +302,76 @@ class UserDataManager:
     def get_transaction_count(cls, user_id: int) -> int:
         """Get total transaction count for a user."""
         return len(cls.get_all_transactions(user_id))
+    
+    # =========================================================================
+    # POLICY STORAGE (INTEGRATION)
+    # =========================================================================
+    
+    @classmethod
+    def save_policies(cls, user_id: int, policies: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Save user transaction policies to JSON file.
+        
+        Policies are stored at: data/users/user_{id}/policies.json
+        
+        Args:
+            user_id: The user's ID
+            policies: Policy dictionary matching the UserPolicies schema
+            
+        Returns:
+            Dict with success status
+        """
+        import json
+        
+        user_dir = cls.create_user_directory(user_id)
+        policies_path = os.path.join(user_dir, "policies.json")
+        
+        try:
+            with open(policies_path, 'w', encoding='utf-8') as f:
+                json.dump(policies, f, indent=2)
+            
+            print(f"[POLICY] Saved policies for user_{user_id}: {policies}")
+            
+            return {
+                'success': True,
+                'path': policies_path,
+                'policies': policies
+            }
+        except Exception as e:
+            print(f"[POLICY] Error saving policies for user_{user_id}: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+    @classmethod
+    def load_policies(cls, user_id: int) -> Dict[str, Any]:
+        """
+        Load user transaction policies from JSON file.
+        
+        Args:
+            user_id: The user's ID
+            
+        Returns:
+            Dict with policies or empty dict if file doesn't exist
+        """
+        import json
+        
+        user_dir = cls.get_user_dir(user_id)
+        policies_path = os.path.join(user_dir, "policies.json")
+        
+        try:
+            if os.path.exists(policies_path):
+                with open(policies_path, 'r', encoding='utf-8') as f:
+                    policies = json.load(f)
+                print(f"[POLICY] Loaded policies for user_{user_id}: {policies}")
+                return policies
+            else:
+                print(f"[POLICY] No policies file for user_{user_id}, returning empty")
+                return {}
+        except Exception as e:
+            print(f"[POLICY] Error loading policies for user_{user_id}: {e}")
+            return {}
 
 
 @dataclass

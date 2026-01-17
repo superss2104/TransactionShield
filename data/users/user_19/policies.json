@@ -1,0 +1,13 @@
+{
+  "max_transaction_amount": 25000.0,
+  "allowed_locations": [
+    "Mumbai",
+    "Delhi",
+    "Home"
+  ],
+  "allowed_time_range": {
+    "start": "08:00",
+    "end": "20:00"
+  },
+  "block_unknown_locations": true
+}

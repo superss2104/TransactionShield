@@ -56,6 +56,42 @@ async function handleTransactionSubmit(e) {
             return;
         }
 
+        // =====================================================================
+        // POLICY ENFORCEMENT (INTEGRATION) - STEP 0: BEFORE RISK SCORING
+        // =====================================================================
+        // Load and enforce user policies BEFORE any risk analysis
+        // Policy violations result in IMMEDIATE BLOCK without ML processing
+        // =====================================================================
+
+        const policies = await loadUserPolicies();
+        console.log('[POLICY] Loaded policies for enforcement:', policies);
+
+        if (policies && Object.keys(policies).length > 0) {
+            const policyResult = enforceUserPolicies(formData, policies);
+
+            if (!policyResult.allowed) {
+                // POLICY VIOLATION - Block transaction immediately
+                console.log('[POLICY] Transaction BLOCKED by user policies:', policyResult.violations);
+
+                // Display policy violation UI (not risk-based UI)
+                renderPolicyViolation(policyResult, formData);
+                setLoading(false);
+
+                // Log the blocked transaction (but don't affect baseline learning)
+                await logBlockedTransaction(formData, policyResult);
+
+                // Show alert with policy violation reason
+                const violationReasons = policyResult.violations.map(v => `• ${v.policy}: ${v.reason}`).join('\n');
+                alert(`🛡️ Transaction Blocked by Your Policies\n\n${violationReasons}\n\nAdjust your policies in the Policies page if needed.`);
+
+                return; // EXIT - Do not proceed to risk scoring
+            }
+        }
+
+        // =====================================================================
+        // END POLICY ENFORCEMENT - Proceed to normal risk scoring flow
+        // =====================================================================
+
         // 2. Fetch Authenticated User's Profile
         const profile = await fetchAuthenticatedUserProfile();
         console.log('[TRANSACTION] Profile loaded:', profile ? {
@@ -802,4 +838,264 @@ function showError(message) {
 
 function hideError() {
     // Errors are shown in the result section, so nothing to hide separately
+}
+
+// ============================================================================
+// POLICY ENFORCEMENT (INTEGRATION)
+// ============================================================================
+
+/**
+ * Load user policies from API
+ * Policies are stored in: data/users/<user_id>/policies.json
+ * Called on transaction submission to enforce constraints
+ * 
+ * @returns {Object|null} User policies or null if none exist
+ */
+async function loadUserPolicies() {
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+        console.warn('[POLICY] No auth token, skipping policy check');
+        return null;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/me/policies`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            console.warn('[POLICY] Could not load policies:', response.status);
+            return null;
+        }
+
+        const result = await response.json();
+        console.log('[POLICY] Loaded policies:', result.policies);
+        return result.policies;
+    } catch (error) {
+        console.error('[POLICY] Error loading policies:', error);
+        return null;
+    }
+}
+
+/**
+ * Enforce user policies against a transaction
+ * This is called BEFORE risk scoring - policy violations are HARD BLOCKS
+ * 
+ * Policy checks (in order):
+ * 1. max_transaction_amount - Block if amount exceeds limit
+ * 2. allowed_locations + block_unknown_locations - Block if location not allowed
+ * 3. allowed_time_range - Block if transaction time outside allowed window
+ * 
+ * @param {Object} formData - Transaction form data
+ * @param {Object} policies - User's policies object
+ * @returns {Object} Result with { allowed: boolean, violations: Array, decision: string }
+ */
+function enforceUserPolicies(formData, policies) {
+    const result = {
+        allowed: true,
+        violations: [],
+        decision: 'ALLOW'
+    };
+
+    if (!policies || Object.keys(policies).length === 0) {
+        console.log('[POLICY] No policies to enforce');
+        return result;
+    }
+
+    console.log('[POLICY] Enforcing policies on transaction:', {
+        amount: formData.amount,
+        location: formData.location,
+        time: formData.timestamp
+    });
+
+    // =========================================================================
+    // CHECK 1: Maximum Transaction Amount
+    // =========================================================================
+    if (policies.max_transaction_amount !== undefined && policies.max_transaction_amount !== null) {
+        if (formData.amount > policies.max_transaction_amount) {
+            result.allowed = false;
+            result.violations.push({
+                policy: 'Amount Limit',
+                reason: `Transaction amount ₹${formData.amount.toLocaleString()} exceeds your limit of ₹${policies.max_transaction_amount.toLocaleString()}`,
+                value: formData.amount,
+                limit: policies.max_transaction_amount
+            });
+            console.log('[POLICY] VIOLATION: Amount exceeded -', formData.amount, '>', policies.max_transaction_amount);
+        }
+    }
+
+    // =========================================================================
+    // CHECK 2: Location Restrictions
+    // =========================================================================
+    if (policies.allowed_locations && policies.allowed_locations.length > 0) {
+        const currentLocation = (formData.location || '').toLowerCase().trim();
+        const allowedLocations = policies.allowed_locations.map(loc => loc.toLowerCase().trim());
+
+        // Check if current location matches any allowed location (fuzzy match)
+        const isLocationAllowed = allowedLocations.some(allowed =>
+            currentLocation.includes(allowed) || allowed.includes(currentLocation)
+        );
+
+        if (!isLocationAllowed && policies.block_unknown_locations) {
+            result.allowed = false;
+            result.violations.push({
+                policy: 'Location Lock',
+                reason: `Location '${formData.location}' is not in your allowed locations: ${policies.allowed_locations.join(', ')}`,
+                value: formData.location,
+                limit: policies.allowed_locations
+            });
+            console.log('[POLICY] VIOLATION: Unknown location blocked -', formData.location);
+        }
+    }
+
+    // =========================================================================
+    // CHECK 3: Time Window Restriction
+    // =========================================================================
+    if (policies.allowed_time_range) {
+        const now = formData.timestamp || new Date();
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const startTime = policies.allowed_time_range.start;
+        const endTime = policies.allowed_time_range.end;
+
+        // Time comparison (handles overnight ranges like "22:00" to "06:00")
+        const isInTimeWindow = isTimeInRange(currentTime, startTime, endTime);
+
+        if (!isInTimeWindow) {
+            result.allowed = false;
+            result.violations.push({
+                policy: 'Time Restriction',
+                reason: `Transaction time ${currentTime} is outside allowed window (${startTime} - ${endTime})`,
+                value: currentTime,
+                limit: `${startTime} - ${endTime}`
+            });
+            console.log('[POLICY] VIOLATION: Time outside allowed window -', currentTime, 'not in', startTime, '-', endTime);
+        }
+    }
+
+    // Set final decision
+    if (!result.allowed) {
+        result.decision = 'BLOCK';
+    }
+
+    console.log('[POLICY] Enforcement result:', result);
+    return result;
+}
+
+/**
+ * Check if a time is within a range
+ * Handles both normal ranges (09:00-17:00) and overnight ranges (22:00-06:00)
+ * 
+ * @param {string} time - Current time in HH:MM format
+ * @param {string} start - Start time in HH:MM format
+ * @param {string} end - End time in HH:MM format
+ * @returns {boolean} True if time is within range
+ */
+function isTimeInRange(time, start, end) {
+    // Convert to minutes for easier comparison
+    const toMinutes = (t) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    };
+
+    const current = toMinutes(time);
+    const rangeStart = toMinutes(start);
+    const rangeEnd = toMinutes(end);
+
+    if (rangeStart <= rangeEnd) {
+        // Normal range (e.g., 09:00 - 17:00)
+        return current >= rangeStart && current <= rangeEnd;
+    } else {
+        // Overnight range (e.g., 22:00 - 06:00)
+        return current >= rangeStart || current <= rangeEnd;
+    }
+}
+
+/**
+ * Display policy violation in the UI
+ * Shows a clear BLOCKED state with policy violation reasons
+ * 
+ * @param {Object} policyResult - Result from enforceUserPolicies
+ * @param {Object} formData - Transaction form data
+ */
+function renderPolicyViolation(policyResult, formData) {
+    const resultSection = document.getElementById('result-section');
+    const container = document.querySelector('.result-card');
+    const title = document.getElementById('status-title');
+    const msg = document.getElementById('status-message');
+    const icon = document.getElementById('status-icon');
+    const factorList = document.getElementById('factor-list');
+
+    // Show result section
+    resultSection.classList.add('active');
+
+    // Set BLOCKED status
+    container.className = 'result-card status-blocked';
+    icon.textContent = '🛡️';
+    title.textContent = 'POLICY VIOLATION';
+    msg.textContent = `Transaction of ₹${formData.amount.toLocaleString()} blocked by your security policies.`;
+
+    // Clear and populate violation list
+    factorList.innerHTML = '';
+
+    // Add policy badge
+    const policyBadge = document.createElement('li');
+    policyBadge.className = 'factor-item factor-risk-badge';
+    policyBadge.innerHTML = `
+        <div class="risk-badge-large policy-block-badge">
+            <i class="fa-solid fa-shield-halved" style="margin-right: 8px;"></i>
+            POLICY BLOCK
+        </div>
+    `;
+    factorList.appendChild(policyBadge);
+
+    // Add each violation
+    policyResult.violations.forEach(violation => {
+        const item = document.createElement('li');
+        item.className = 'factor-item factor-bad';
+        item.innerHTML = `
+            <div class="factor-icon">✕</div>
+            <div class="factor-content">
+                <span class="factor-message"><strong>${violation.policy}:</strong> ${violation.reason}</span>
+            </div>
+        `;
+        factorList.appendChild(item);
+    });
+
+    // Add info note about policy blocks
+    const infoItem = document.createElement('li');
+    infoItem.className = 'factor-item factor-info';
+    infoItem.innerHTML = `
+        <div class="factor-icon">ℹ</div>
+        <div class="factor-content">
+            <span class="factor-message">This transaction was blocked by your own security policies.</span>
+            <span class="factor-detail">Edit your policies in the Policies page if you need to adjust limits.</span>
+        </div>
+    `;
+    factorList.appendChild(infoItem);
+
+    // Scroll to results
+    resultSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/**
+ * Log a policy-blocked transaction
+ * Blocked transactions are logged but do NOT affect baseline learning
+ * 
+ * @param {Object} formData - Transaction form data
+ * @param {Object} policyResult - Policy violation details
+ */
+async function logBlockedTransaction(formData, policyResult) {
+    console.log('[POLICY] Logging blocked transaction (not affecting baseline):', {
+        amount: formData.amount,
+        location: formData.location,
+        violations: policyResult.violations,
+        timestamp: new Date().toISOString()
+    });
+
+    // NOTE: We intentionally do NOT call recordTransaction() here
+    // Policy-blocked transactions should not affect the user's behavioral baseline
 }

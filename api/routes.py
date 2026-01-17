@@ -23,7 +23,9 @@ from api.schemas import (
     TestTransaction, TestResponse, FeatureExplanation,
     RegisterRequest, LoginRequest, AuthResponse, HistoryUploadResponse,
     TransactionRecord, TransactionRecordResponse, UserTransactionsResponse,
-    FaceRegistrationRequest, OnboardingStatusResponse
+    FaceRegistrationRequest, OnboardingStatusResponse,
+    # POLICY INTEGRATION: User policy schemas
+    UserPolicies, UserPoliciesResponse
 )
 from api.auth import get_current_user, get_optional_user, create_access_token
 from db.models import User, UserRepository, ProfileRepository, UserDataManager
@@ -374,6 +376,79 @@ async def reset_my_profile(current_user: User = Depends(get_current_user)):
     }
 
 
+# ============= USER POLICIES ENDPOINTS (INTEGRATION) =============
+
+@router.get("/me/policies", response_model=UserPoliciesResponse)
+async def get_my_policies(current_user: User = Depends(get_current_user)):
+    """
+    Get the current user's transaction control policies.
+    
+    Policies are user-defined constraints that act as HARD LIMITS
+    before risk scoring. They are stored in:
+        data/users/<user_id>/policies.json
+    
+    Returns empty policies object if no policies file exists.
+    
+    Authentication required.
+    """
+    policies = UserDataManager.load_policies(current_user.id)
+    
+    print(f"[POLICY API] Loaded policies for user {current_user.username}: {policies}")
+    
+    # Check if policies is None (file doesn't exist) vs empty dict {} (file exists but no policies)
+    has_policies = policies is not None and len(policies) > 0
+    
+    return UserPoliciesResponse(
+        success=True,
+        message="Policies loaded successfully" if has_policies else "No policies configured",
+        policies=policies if has_policies else None
+    )
+
+
+@router.post("/me/policies", response_model=UserPoliciesResponse)
+async def save_my_policies(
+    policies: UserPolicies,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Save the current user's transaction control policies.
+    
+    Policies define HARD CONSTRAINTS that are evaluated BEFORE risk scoring:
+    - max_transaction_amount: Block transactions exceeding this amount
+    - allowed_locations: List of allowed location identifiers
+    - allowed_time_range: Time window when transactions are allowed
+    - block_unknown_locations: Block transactions from unlisted locations
+    
+    Policies are stored in: data/users/<user_id>/policies.json
+    
+    Authentication required.
+    """
+    # Convert Pydantic model to dict for storage
+    policies_dict = policies.model_dump(exclude_none=True)
+    
+    # Handle nested TimeRange model
+    if 'allowed_time_range' in policies_dict and policies_dict['allowed_time_range']:
+        # Already a dict from model_dump
+        pass
+    
+    print(f"[POLICY API] Saving policies for user {current_user.username}: {policies_dict}")
+    
+    result = UserDataManager.save_policies(current_user.id, policies_dict)
+    
+    if not result['success']:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save policies: {result.get('error')}"
+        )
+    
+    # Log for debugging
+    print(f"[POLICY API] User policies saved: {policies_dict}")
+    
+    return UserPoliciesResponse(
+        success=True,
+        message="Policies saved successfully",
+        policies=policies
+    )
 
 @router.post("/assess-transaction", response_model=AssessmentResponse)
 async def assess_transaction(request: TransactionRequest):

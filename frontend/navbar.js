@@ -18,6 +18,7 @@ const NAVBAR_HTML = `
     <div class="navbar-tabs">
         <a href="make_transaction.html" class="nav-tab" data-tab="transactions">Transactions</a>
         <a href="dashboard.html" class="nav-tab" data-tab="dashboard">Dashboard</a>
+        <a href="user_transaction_policy.html" class="nav-tab" data-tab="policies">Policies</a>
         <a href="upload.html" class="nav-tab" data-tab="upload">Upload History</a>
     </div>
     <div class="navbar-user">

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransactionShield - User Policy Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="user_transaction_policy.css">
+    <!-- INTEGRATION POINT: Global navbar styles -->
+    <link rel="stylesheet" href="navbar.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <!-- INTEGRATION POINT: Global navbar scripts - config.js must load first -->
+    <script src="config.js"></script>
+    <script src="navbar.js"></script>
+    <script>
+        // INTEGRATION POINT: Initialize navbar with 'policies' as the active tab
+        document.addEventListener('DOMContentLoaded', () => initNavbar('policies'));
+    </script>
+
+    <div class="app-container">
+        <!-- NOTE: Original header hidden - global navbar provides navigation -->
+        <!-- The main-header element is kept but styled to not conflict with global navbar -->
+        <header class="main-header" style="display: none;">
+            <div class="logo-area">
+                <i class="fa-solid fa-shield-halved logo-icon"></i>
+                <h1>TransactionShield</h1>
+            </div>
+            <div class="user-profile" id="user-profile">
+                <span class="user-name" id="user-name">Loading...</span>
+                <div class="avatar" id="user-avatar">?</div>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <section class="intro-section">
+                <h2>Security Policies</h2>
+                <p>Define your own rules. You are in control of your security.</p>
+            </section>
+
+            <div class="policies-grid" id="policies-container">
+                <!-- Policy Cards will be injected here by JS -->
+            </div>
+
+            <!-- NAVIGATION TO PAYMENT PAGE -->
+            <section class="action-section">
+                <div class="action-card">
+                    <div class="action-icon-wrapper">
+                        <div class="action-icon">
+                            <i class="fa-solid fa-shield-check"></i>
+                        </div>
+                        <div class="pulse-ring"></div>
+                    </div>
+                    <div class="action-content">
+                        <h3>Your Security Shield is Active</h3>
+                        <p>Your custom policies are now protecting every transaction. Ready to make a secure payment
+                            with your personalized fraud prevention rules?</p>
+                        <div class="policy-status-badges">
+                            <span class="status-badge active" id="active-policies-count">
+                                <i class="fa-solid fa-check-circle"></i> 2 Policies Active
+                            </span>
+                            <span class="status-badge">
+                                <i class="fa-solid fa-lock"></i> Zero-Trust Mode
+                            </span>
+                        </div>
+                    </div>
+                    <a href="make_transaction.html" class="btn-action">
+                        <span>Make Secure Payment</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+            </section>
+
+            <!-- DEMO / TEST SECTION -->
+            <section class="demo-section">
+                <div class="demo-header">
+                    <h3><i class="fa-solid fa-flask"></i> Policy Simulator</h3>
+                    <p>Test your active policies with a mock transaction.</p>
+                </div>
+
+                <div class="simulation-controls">
+                    <div class="input-group">
+                        <label>Amount (₹)</label>
+                        <input type="number" id="test-amount" value="25000">
+                    </div>
+                    <div class="input-group">
+                        <label>Location</label>
+                        <select id="test-location">
+                            <!-- Options populated dynamically based on policy -->
+                            <option value="Home City">Home City</option>
+                            <option value="Unknown">Unknown (Blocked)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Time</label>
+                        <input type="time" id="test-time" value="23:30">
+                    </div>
+                    <button id="run-simulation-btn" class="btn-primary">
+                        Confirm & Test
+                    </button>
+                </div>
+
+                <div id="simulation-result" class="result-box hidden">
+                    <!-- Results injected here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="user_transaction_policy.js"></script>
+</body>
+
+</html>

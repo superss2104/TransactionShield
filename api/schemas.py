@@ -413,3 +413,79 @@ class UserTransactionsResponse(BaseModel):
     total_count: int = Field(..., description="Total transaction count")
     user_id: int = Field(..., description="User ID")
 
+
+# ============= USER POLICY SCHEMAS (INTEGRATION) =============
+
+class TimeRange(BaseModel):
+    """Time range for allowed transaction hours."""
+    start: str = Field(
+        default="06:00",
+        description="Start time in HH:MM format",
+        pattern=r'^\d{2}:\d{2}$'
+    )
+    end: str = Field(
+        default="22:00",
+        description="End time in HH:MM format",
+        pattern=r'^\d{2}:\d{2}$'
+    )
+
+
+class UserPolicies(BaseModel):
+    """
+    User-defined transaction control policies.
+    
+    These act as HARD CONSTRAINTS evaluated BEFORE risk scoring.
+    Policy violations result in immediate BLOCK without affecting ML learning.
+    
+    Storage: data/users/<user_id>/policies.json
+    """
+    max_transaction_amount: Optional[float] = Field(
+        default=None,
+        gt=0,
+        description="Maximum allowed transaction amount. Transactions exceeding this are blocked."
+    )
+    allowed_locations: Optional[List[str]] = Field(
+        default=None,
+        description="List of allowed location identifiers (e.g., 'home_atm', 'office_branch')"
+    )
+    allowed_time_range: Optional[TimeRange] = Field(
+        default=None,
+        description="Allowed time window for transactions"
+    )
+    block_unknown_locations: bool = Field(
+        default=False,
+        description="If true, transactions from locations not in allowed_locations are blocked"
+    )
+    
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "max_transaction_amount": 10000,
+                "allowed_locations": ["home_atm", "office_branch"],
+                "allowed_time_range": {
+                    "start": "06:00",
+                    "end": "22:00"
+                },
+                "block_unknown_locations": True
+            }
+        }
+    }
+
+
+class UserPoliciesResponse(BaseModel):
+    """Response containing user's saved policies."""
+    success: bool = Field(..., description="Whether the operation succeeded")
+    message: str = Field(..., description="Result message")
+    policies: Optional[UserPolicies] = Field(
+        default=None, 
+        description="User's saved policies (null if none exist)"
+    )
+
+
+class PolicyViolation(BaseModel):
+    """Details of a policy violation."""
+    policy_name: str = Field(..., description="Name of the violated policy")
+    reason: str = Field(..., description="Human-readable violation reason")
+    value: Optional[Any] = Field(default=None, description="Violating value")
+    limit: Optional[Any] = Field(default=None, description="Policy limit that was exceeded")
+

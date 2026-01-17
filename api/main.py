@@ -7,6 +7,7 @@ Configures CORS, middleware, and includes routes.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import sys
 import os
 
@@ -36,6 +37,11 @@ app.add_middleware(
 # Include routes
 app.include_router(router)
 
+# Mount static files for frontend
+frontend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+if os.path.exists(frontend_path):
+    app.mount("/frontend", StaticFiles(directory=frontend_path, html=True), name="frontend")
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -47,6 +53,7 @@ async def startup_event():
     print("[OK] Risk Engine: Active")
     print("[OK] Decision Policy: Loaded")
     print("[OK] API Documentation: http://localhost:8000/docs")
+    print("[OK] Frontend: http://localhost:8000/frontend/index.html")
     print("=" * 60)
 
 
