@@ -115,41 +115,128 @@ async function handleTransactionSubmit(e) {
 
         // 5. Handle based on risk level
         if (analysis.decision === 'VERIFIED') {
-            // LOW RISK - Record transaction directly
-            await recordTransaction(formData);
+            // =========================================================================
+            // LOW RISK - Record transaction and redirect to status page
+            // =========================================================================
+            console.log('[TRANSACTION] LOW RISK - Processing without face verification');
+
+            await recordTransaction(formData, analysis);
+
+            // Store transaction data for status page
+            const transactionStatusData = createTransactionStatusData(analysis, formData, profile, {
+                faceVerified: null, // Not required
+                originalDecision: 'VERIFIED',
+                finalDecision: 'VERIFIED'
+            });
+            localStorage.setItem('currentTransaction', JSON.stringify(transactionStatusData));
+
             showSuccessAlert('Transaction completed successfully!');
+
+            // Redirect to transaction status page after a short delay
+            setTimeout(() => {
+                window.location.href = 'transaction-status.html';
+            }, 1500);
+
         } else {
+            // =========================================================================
             // FLAGGED or BLOCKED - Require face verification
-            console.log('[TRANSACTION] High-risk detected, triggering face verification...');
+            // =========================================================================
+            console.log('[TRANSACTION] HIGH/MEDIUM RISK detected, triggering face verification...');
+            console.log('[TRANSACTION] Original Z-Score:', analysis.zScore.toFixed(4), 'Risk:', analysis.riskLevel);
 
             const faceVerified = await triggerFaceVerification(analysis, formData);
 
             if (faceVerified) {
-                // Face matched - ask user to confirm
+                // =================================================================
+                // FACE VERIFIED SUCCESS
+                // Update Z-Score to LOW and decision to VERIFIED
+                // =================================================================
+                console.log('[TRANSACTION] Face VERIFIED - Updating Z-Score to LOW');
+
+                // Store original values for logging
+                const originalZScore = analysis.zScore;
+                const originalRiskLevel = analysis.riskLevel;
+                const originalDecision = analysis.decision;
+
+                // UPDATE Z-SCORE TO LOW (below 2 is LOW risk)
+                // This ensures consistency with dashboard
+                analysis.zScore = 0.5; // Very low Z-score indicating verified transaction
+                analysis.absZScore = 0.5;
+                analysis.riskLevel = 'LOW';
+                analysis.decision = 'VERIFIED';
+
+                console.log('[TRANSACTION] Z-Score UPDATED: ', originalZScore.toFixed(4), ' → ', analysis.zScore.toFixed(4));
+                console.log('[TRANSACTION] Risk Level UPDATED: ', originalRiskLevel, ' → LOW');
+                console.log('[TRANSACTION] Decision UPDATED: ', originalDecision, ' → VERIFIED');
+
+                // Ask user to confirm (face verified)
                 const userConfirmed = confirm(
-                    `✅ User Verified!\n\nYou are about to make a ${analysis.riskLevel} RISK transaction:\n` +
+                    `✅ Face Verified Successfully!\n\n` +
+                    `Your identity has been confirmed. Transaction details:\n` +
                     `• Amount: ₹${formData.amount.toLocaleString()}\n` +
-                    `• To: ${formData.receiver_id}\n\n` +
+                    `• To: ${formData.receiver_id}\n` +
+                    `• Original Risk: ${originalRiskLevel} → Now: VERIFIED\n\n` +
                     `Do you want to proceed with this transaction?`
                 );
 
                 if (userConfirmed) {
-                    // User confirmed - record transaction
-                    await recordTransaction(formData);
-                    showSuccessAlert('🎉 Transaction Successful!\n\nYour high-risk transaction has been verified and completed.');
+                    // User confirmed - record transaction with UPDATED LOW Z-score
+                    await recordTransaction(formData, analysis);
 
                     // Update UI to show success
                     updateResultToSuccess(analysis, formData);
+
+                    // Create transaction status data with UPDATED values
+                    const transactionStatusData = createTransactionStatusData(analysis, formData, profile, {
+                        faceVerified: true,
+                        originalZScore: originalZScore,
+                        originalRiskLevel: originalRiskLevel,
+                        originalDecision: originalDecision,
+                        finalDecision: 'VERIFIED',
+                        faceVerificationNote: 'Risk reduced after face verification'
+                    });
+                    localStorage.setItem('currentTransaction', JSON.stringify(transactionStatusData));
+
+                    showSuccessAlert('🎉 Transaction Successful!\n\nYour transaction has been verified and completed.');
+
+                    // Redirect to transaction status page
+                    setTimeout(() => {
+                        window.location.href = 'transaction-status.html';
+                    }, 1500);
                 } else {
                     showCancelAlert('Transaction cancelled by user.');
                 }
             } else {
-                // Face verification failed
+                // =================================================================
+                // FACE VERIFICATION FAILED
+                // Keep original HIGH/MEDIUM Z-Score and BLOCK transaction
+                // =================================================================
+                console.log('[TRANSACTION] Face verification FAILED - Keeping original risk level');
+                console.log('[TRANSACTION] Keeping Z-Score:', analysis.zScore.toFixed(4), 'Risk:', analysis.riskLevel);
+
+                // Update decision to BLOCKED (face failed)
+                const originalDecision = analysis.decision;
+                analysis.decision = 'BLOCKED';
+
+                // Store transaction data with ORIGINAL high Z-score (NOT modified)
+                const transactionStatusData = createTransactionStatusData(analysis, formData, profile, {
+                    faceVerified: false,
+                    originalDecision: originalDecision,
+                    finalDecision: 'BLOCKED',
+                    faceVerificationNote: 'Transaction blocked due to failed face verification'
+                });
+                localStorage.setItem('currentTransaction', JSON.stringify(transactionStatusData));
+
                 showBlockedAlert('❌ Face verification failed.\n\nThis transaction has been blocked for your security.');
+
+                // Redirect to transaction status page showing blocked status
+                setTimeout(() => {
+                    window.location.href = 'transaction-status.html';
+                }, 2000);
             }
         }
 
-        // 6. Optional: Send to backend for ML analysis
+        // 6. Optional: Send to backend for ML analysis (only for logging, not affecting decision)
         try {
             const backendResult = await assessTransactionWithBackend(formData, analysis, profile);
             if (backendResult && backendResult.reasons) {
@@ -164,6 +251,43 @@ async function handleTransactionSubmit(e) {
         showError("System Error: Could not verify transaction. Please try again.");
         setLoading(false);
     }
+}
+
+/**
+ * Create transaction status data object for the status page
+ * This ensures consistency between transaction page and status page
+ */
+function createTransactionStatusData(analysis, formData, profile, verificationResult) {
+    const transactionId = `TXN${Date.now()}`;
+
+    return {
+        transaction_id: transactionId,
+        amount: formData.amount,
+        decision: verificationResult.finalDecision || analysis.decision,
+        riskLevel: analysis.riskLevel,
+        zScore: analysis.zScore,
+        absZScore: Math.abs(analysis.zScore),
+        timestamp: new Date().toISOString(),
+        user_id: formData.user_id,
+        receiver_id: formData.receiver_id,
+        location: formData.location,
+        type: formData.type,
+        channel: formData.channel,
+        mean: profile?.amount_range?.mean || analysis.mean,
+        stdDev: profile?.amount_range?.std || analysis.stdDev,
+        locationMatch: analysis.locationMatch,
+        factors: analysis.factors || [],
+
+        // Face verification metadata
+        faceVerified: verificationResult.faceVerified,
+        originalZScore: verificationResult.originalZScore || analysis.zScore,
+        originalRiskLevel: verificationResult.originalRiskLevel || analysis.riskLevel,
+        originalDecision: verificationResult.originalDecision || analysis.decision,
+        faceVerificationNote: verificationResult.faceVerificationNote || null,
+
+        // Compliance score will be calculated by status page based on Z-score
+        complianceScore: null
+    };
 }
 
 /**
@@ -765,7 +889,7 @@ async function assessTransactionWithBackend(formData, analysis, profile) {
 /**
  * Record transaction to user's storage via API
  */
-async function recordTransaction(formData) {
+async function recordTransaction(formData, analysis = null) {
     const authToken = localStorage.getItem('authToken');
     if (!authToken) {
         console.warn('No auth token - transaction not recorded');
@@ -775,6 +899,10 @@ async function recordTransaction(formData) {
     const now = formData.timestamp || new Date();
     const date = now.toISOString().split('T')[0];
     const time = now.toTimeString().split(' ')[0];
+
+    // Use analysis data if available, otherwise defaults
+    const status = analysis ? analysis.decision : 'VERIFIED';
+    const zScore = analysis ? analysis.zScore : 0.0;
 
     try {
         const response = await fetch(`${API_BASE_URL}/record-transaction`, {
@@ -787,7 +915,9 @@ async function recordTransaction(formData) {
                 amount: formData.amount,
                 time: time,
                 location: formData.location || 'unknown',
-                date: date
+                date: date,
+                status: status,
+                z_score: zScore
             })
         });
 

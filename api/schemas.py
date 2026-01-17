@@ -357,8 +357,8 @@ class TransactionRecord(BaseModel):
     """
     Standardized transaction record format.
     
-    CSV Schema: amount,time,location,date
-    Example: 5000,14:32:10,home_atm,2025-01-10
+    CSV Schema: amount,time,location,date,status,z_score
+    Example: 5000,14:32:10,home_atm,2025-01-10,VERIFIED,0.5
     """
     amount: float = Field(
         ..., 
@@ -380,6 +380,14 @@ class TransactionRecord(BaseModel):
         description="Transaction date (YYYY-MM-DD)",
         pattern=r'^\d{4}-\d{2}-\d{2}$'
     )
+    status: Optional[str] = Field(
+        default="VERIFIED",
+        description="Transaction status (VERIFIED, FLAGGED, BLOCKED)"
+    )
+    z_score: Optional[float] = Field(
+        default=0.0,
+        description="Risk score associated with transaction"
+    )
     
     model_config = {
         "json_schema_extra": {
@@ -387,7 +395,9 @@ class TransactionRecord(BaseModel):
                 "amount": 5000.0,
                 "time": "14:30:00",
                 "location": "home_atm",
-                "date": "2025-01-17"
+                "date": "2025-01-17",
+                "status": "VERIFIED",
+                "z_score": 0.5
             }
         }
     }

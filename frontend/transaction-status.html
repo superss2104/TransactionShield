@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Status - TransactionShield</title>
+    <link rel="stylesheet" href="navbar.css">
+    <link rel="stylesheet" href="transaction-status.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <script src="config.js"></script>
+    <script src="navbar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => initNavbar('transactions'));
+    </script>
+
+    <div class="status-container">
+
+        <!-- MAIN STATUS HEADER -->
+        <section class="status-header" id="statusHeader">
+            <div class="status-icon-wrapper">
+                <div class="status-icon-large" id="statusIcon">
+                    <span id="statusIconSymbol">⏳</span>
+                </div>
+                <div class="status-pulse"></div>
+            </div>
+            <h1 class="status-title" id="statusTitle">Processing Transaction</h1>
+            <p class="status-subtitle" id="statusSubtitle">Please wait while we verify your transaction...</p>
+            <div class="transaction-id">
+                <span class="label">Transaction ID:</span>
+                <span class="value" id="transactionId">---</span>
+            </div>
+        </section>
+
+
+
+        <!-- TRANSACTION TIMELINE -->
+        <section class="timeline-section">
+            <h2>Transaction Journey</h2>
+            <div class="timeline" id="timeline">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- LEGAL COMPLIANCE EXPLANATION -->
+        <section class="legal-section">
+            <h2>Legal & Regulatory Compliance</h2>
+            <p class="legal-intro">Your transaction has been evaluated against Indian banking and data protection
+                regulations:</p>
+
+            <div class="legal-acts" id="legalActs">
+                <!-- Populated by JS based on transaction status -->
+            </div>
+        </section>
+
+        <!-- TRANSACTION DETAILS -->
+        <section class="details-section">
+            <h2>Transaction Details</h2>
+            <div class="details-grid" id="detailsGrid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- RISK ANALYSIS -->
+        <section class="analysis-section">
+            <h2>Risk Analysis</h2>
+            <div class="analysis-factors" id="analysisFactors">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- ACTION BUTTONS -->
+        <section class="actions-section">
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="printTranscript()">
+                    <span class="btn-icon">🖨️</span>
+                    Print Transcript
+                </button>
+                <button class="btn btn-secondary" onclick="downloadPDF()">
+                    <span class="btn-icon">📄</span>
+                    Download PDF
+                </button>
+                <button class="btn btn-secondary" onclick="shareStatus()">
+                    <span class="btn-icon">🔗</span>
+                    Share Status
+                </button>
+                <button class="btn btn-outline" onclick="goToDashboard()">
+                    <span class="btn-icon">📊</span>
+                    View Dashboard
+                </button>
+            </div>
+
+            <!-- Dispute/Appeal Section (shown only for BLOCKED transactions) -->
+            <div class="dispute-section" id="disputeSection" style="display: none;">
+                <div class="dispute-card">
+                    <h3>Transaction Blocked? File an Appeal</h3>
+                    <p>If you believe this transaction was incorrectly blocked, you can submit an appeal with supporting
+                        documents.</p>
+                    <button class="btn btn-warning" onclick="openDisputeForm()">
+                        <span class="btn-icon">⚖️</span>
+                        File Appeal
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PRINT-ONLY SECTION -->
+        <div class="print-only">
+            <div class="print-header">
+                <h1>TransactionShield</h1>
+                <p>Official Transaction Transcript</p>
+            </div>
+            <div class="print-qr">
+                <div id="qrCode"></div>
+                <p>Scan to verify authenticity</p>
+            </div>
+            <div class="print-footer">
+                <p>Generated on: <span id="printDate"></span></p>
+                <p>This is an official record of your transaction status and regulatory compliance assessment.</p>
+                <p class="disclaimer">This document is for informational purposes only. Legal references are provided
+                    for transparency and educational purposes.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- DISPUTE MODAL -->
+    <div class="modal" id="disputeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>File Transaction Appeal</h2>
+                <button class="modal-close" onclick="closeDisputeForm()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="disputeForm" onsubmit="submitDispute(event)">
+                    <div class="form-group">
+                        <label for="disputeReason">Reason for Appeal</label>
+                        <select id="disputeReason" required>
+                            <option value="">Select a reason</option>
+                            <option value="legitimate">This is a legitimate transaction</option>
+                            <option value="error">System error - incorrect analysis</option>
+                            <option value="emergency">Emergency transaction</option>
+                            <option value="other">Other (please explain)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="disputeExplanation">Detailed Explanation</label>
+                        <textarea id="disputeExplanation" rows="4" required
+                            placeholder="Please provide details about why this transaction should be approved..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="disputeDocuments">Supporting Documents (Optional)</label>
+                        <input type="file" id="disputeDocuments" multiple accept=".pdf,.jpg,.jpeg,.png">
+                        <small>Upload any supporting documents (invoices, receipts, etc.)</small>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeDisputeForm()">Cancel</button>
+                        <button type="submit" class="btn btn-warning">Submit Appeal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHARE MODAL -->
+    <div class="modal" id="shareModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Share Transaction Status</h2>
+                <button class="modal-close" onclick="closeShareModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>A secure, time-limited link has been generated for this transaction status:</p>
+                <div class="share-link-container">
+                    <input type="text" id="shareLink" readonly>
+                    <button class="btn btn-primary" onclick="copyShareLink()">Copy</button>
+                </div>
+                <p class="share-note">⏰ This link will expire in 24 hours</p>
+                <p class="share-note">🔒 View-only access - no modifications allowed</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="transaction-status.js"></script>
+</body>
+
+</html>

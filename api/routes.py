@@ -312,7 +312,9 @@ async def record_transaction(
         amount=transaction.amount,
         time=transaction.time,
         location=transaction.location,
-        date=transaction.date
+        date=transaction.date,
+        status=transaction.status,
+        z_score=transaction.z_score
     )
     
     if not result['success']:

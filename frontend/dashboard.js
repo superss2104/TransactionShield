@@ -100,7 +100,8 @@ function showEmptyState(message) {
  * Updated to handle new CSV schema: amount,time,location,date
  */
 function processTransactionData(data) {
-    // Validate and clean data (new schema: amount,time,location,date)
+    // Process and analyze transaction data
+    // Updated to handle new CSV schema: amount,time,location,date,status,z_score
     transactionData = data.filter(row => {
         return row.amount && row.location && (row.date || row.time);
     }).map(row => {
@@ -117,7 +118,10 @@ function processTransactionData(data) {
             amount: parseFloat(row.amount),
             hour: hour,
             location: row.location.trim(),
-            date: new Date(row.date ? row.date.trim() : new Date())
+            date: new Date(row.date ? row.date.trim() : new Date()),
+            // Capture stored status and z-score if available
+            status: row.status,
+            storedZScore: row.z_score !== undefined && row.z_score !== null ? parseFloat(row.z_score) : null
         };
     });
 
@@ -131,7 +135,11 @@ function processTransactionData(data) {
 
     // Add computed fields to each transaction
     transactionData = transactionData.map(transaction => {
-        const zScore = calculateZScore(transaction.amount, stats.mean, stats.stdDev);
+        // Use stored Z-score if available (for verified high-risk transactions), otherwise calculate
+        const zScore = transaction.storedZScore !== null
+            ? transaction.storedZScore
+            : calculateZScore(transaction.amount, stats.mean, stats.stdDev);
+
         const riskLevel = getRiskLevel(zScore);
 
         return {

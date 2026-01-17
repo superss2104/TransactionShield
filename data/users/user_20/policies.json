@@ -1,7 +1,0 @@
-{
-  "allowed_time_range": {
-    "start": "06:00",
-    "end": "10:00"
-  },
-  "block_unknown_locations": false
-}

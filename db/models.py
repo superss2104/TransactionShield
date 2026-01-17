@@ -126,7 +126,7 @@ class UserDataManager:
     BASE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'users')
     
     # Standard CSV header
-    CSV_HEADER = "amount,time,location,date\n"
+    CSV_HEADER = "amount,time,location,date,status,z_score\n"
     
     @classmethod
     def get_user_dir(cls, user_id: int) -> str:
@@ -215,7 +215,7 @@ class UserDataManager:
     
     @classmethod
     def append_transaction(cls, user_id: int, amount: float, time: str, 
-                          location: str, date: str) -> Dict[str, Any]:
+                          location: str, date: str, status: str = "VERIFIED", z_score: float = 0.0) -> Dict[str, Any]:
         """
         Append a new transaction to user's transactions.csv file.
         
@@ -225,6 +225,8 @@ class UserDataManager:
             time: Transaction time (HH:MM:SS)
             location: Location identifier
             date: Transaction date (YYYY-MM-DD)
+            status: Transaction status (VERIFIED, FLAGGED, BLOCKED)
+            z_score: Risk score associated with transaction
             
         Returns:
             Dict with success status
@@ -239,7 +241,7 @@ class UserDataManager:
             with open(txn_path, 'a', encoding='utf-8') as f:
                 if not file_exists:
                     f.write(cls.CSV_HEADER)
-                f.write(f"{amount},{time},{location},{date}\n")
+                f.write(f"{amount},{time},{location},{date},{status},{z_score}\n")
             
             return {'success': True, 'path': txn_path}
         except Exception as e:
@@ -283,11 +285,23 @@ class UserDataManager:
                 reader = csv.DictReader(f)
                 for row in reader:
                     try:
+                        # Handle potential missing columns (for old CSVs)
+                        status = row.get('status', 'VERIFIED')
+                        z_score_val = row.get('z_score')
+                        
+                        # If extra fields ended up in restkey (because header is old)
+                        if not z_score_val and reader.restkey and row.get(reader.restkey):
+                            extras = row.get(reader.restkey)
+                            if len(extras) >= 1: status = extras[0]
+                            if len(extras) >= 2: z_score_val = extras[1]
+
                         txn = {
                             'amount': float(row.get('amount', 0)),
                             'time': row.get('time', '').strip(),
                             'location': row.get('location', '').strip(),
-                            'date': row.get('date', '').strip()
+                            'date': row.get('date', '').strip(),
+                            'status': status,
+                            'z_score': float(z_score_val) if z_score_val else None
                         }
                         if txn['amount'] > 0:
                             transactions.append(txn)

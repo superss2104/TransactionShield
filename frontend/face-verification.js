@@ -1,15 +1,42 @@
 /**
  * Face Verification Component
  * Handles user face registration and verification for medium-risk transactions
+ * 
+ * STATE ISOLATION FIX (v3.2):
+ * ===========================
+ * Each verification attempt is COMPLETELY INDEPENDENT and STATELESS.
+ * 
+ * WHAT WE STORE:
+ *   - Reference embedding only (in localStorage as 'userFaceData')
+ * 
+ * WHAT WE DO NOT STORE:
+ *   - Previous verification results
+ *   - Failure counts
+ *   - Cached similarity scores
+ *   - Dynamic thresholds
+ * 
+ * VERIFICATION FLOW:
+ *   1. User initiates verification
+ *   2. Capture FRESH frame from camera
+ *   3. Create FRESH canvas for this capture
+ *   4. Load stored reference data (immutable)
+ *   5. Perform FRESH comparison
+ *   6. Return result (no caching)
+ *   7. Discard all temporary state
+ * 
+ * This ensures that a failed attempt does NOT affect subsequent attempts.
  */
 
 class FaceVerification {
     constructor() {
+        // STATE ISOLATION: No cached verification results
+        // Only reference data is stored
         this.userFaceData = null;
         this.videoStream = null;
-        this.canvas = document.createElement('canvas');
-        this.ctx = this.canvas.getContext('2d');
         this.isRegistered = false;
+
+        // NOTE: Canvas is now created fresh per capture (not reused)
+        // This prevents state contamination between verification attempts
 
         // Load saved face data from localStorage
         this.loadSavedFaceData();
@@ -112,9 +139,14 @@ class FaceVerification {
 
     /**
      * Show face verification modal for medium-risk transaction
+     * 
+     * STATE ISOLATION: Each verification attempt is completely independent.
+     * Failed attempts do NOT affect future attempts.
      */
     async showVerificationModal(transaction) {
         return new Promise((resolve, reject) => {
+            console.log('[FACE] Opening verification modal - fresh session');
+
             const modal = this.createModal(
                 'Face Verification Required',
                 `Medium-risk transaction detected: ₹${transaction.amount.toFixed(2)} at ${transaction.location}`,
@@ -126,6 +158,7 @@ class FaceVerification {
             const resultDiv = modal.querySelector('#verificationResult');
             const closeBtn = modal.querySelector('#closeBtn');
             const skipBtn = modal.querySelector('#skipBtn');
+            const cameraContainer = modal.querySelector('.camera-container');
 
             // Start camera
             this.startCamera(videoElement).catch(err => {
@@ -133,16 +166,22 @@ class FaceVerification {
                 reject(err);
             });
 
-            // Verify face
-            verifyBtn.addEventListener('click', async () => {
+            // Verify face - handler for both initial and retry attempts
+            const performVerification = async () => {
+                console.log('[FACE] User clicked verify - starting fresh attempt');
+
                 verifyBtn.disabled = true;
                 verifyBtn.innerHTML = '<span class="spinner"></span> Verifying...';
 
-                // Hide camera container for verification
-                const cameraContainer = modal.querySelector('.camera-container');
-
+                // Capture FRESH photo for this attempt
                 const currentFaceData = this.capturePhoto(videoElement);
-                const isMatch = await this.compareFaces(this.userFaceData, currentFaceData);
+
+                // Load FRESH reference data (not cached from previous attempt)
+                const referenceData = localStorage.getItem('userFaceData');
+                console.log('[FACE] Using fresh reference data, length:', referenceData?.length || 0);
+
+                // Perform FRESH comparison - no state from previous attempts
+                const isMatch = await this.compareFaces(referenceData, currentFaceData);
 
                 this.stopCamera();
                 if (cameraContainer) cameraContainer.style.display = 'none';
@@ -150,6 +189,7 @@ class FaceVerification {
                 skipBtn.classList.add('hidden');
 
                 if (isMatch) {
+                    console.log('[FACE] Verification PASSED');
                     resultDiv.innerHTML = `
                         <div class="verification-result result-success">
                             <div class="result-icon">✓</div>
@@ -164,20 +204,52 @@ class FaceVerification {
                         resolve(true);
                     }, 2000);
                 } else {
+                    console.log('[FACE] Verification FAILED - user can retry');
                     resultDiv.innerHTML = `
                         <div class="verification-result result-failed">
                             <div class="result-icon">✗</div>
                             <h3 class="result-title">Verification Failed</h3>
-                            <p class="result-message">Face does not match your registered photo.<br>This transaction has been blocked.</p>
+                            <p class="result-message">Face does not match your registered photo.<br>Please try again or cancel.</p>
+                            <button id="retryVerifyBtn" class="modal-btn btn-verify" style="margin-top: 1rem; width: 100%;">
+                                <span>🔄</span> Try Again
+                            </button>
                         </div>
                     `;
                     resultDiv.classList.remove('hidden');
                     closeBtn.classList.remove('hidden');
+
+                    // Add retry button handler - STATE ISOLATION: Each retry is independent
+                    const retryBtn = resultDiv.querySelector('#retryVerifyBtn');
+                    if (retryBtn) {
+                        retryBtn.addEventListener('click', async () => {
+                            console.log('[FACE] User clicked RETRY - resetting for fresh attempt');
+
+                            // Reset UI for fresh attempt
+                            resultDiv.classList.add('hidden');
+                            resultDiv.innerHTML = '';
+                            closeBtn.classList.add('hidden');
+
+                            // Restart camera fresh
+                            if (cameraContainer) cameraContainer.style.display = '';
+                            verifyBtn.classList.remove('hidden');
+                            verifyBtn.disabled = false;
+                            verifyBtn.innerHTML = '<span>🔐</span> Verify My Face';
+                            skipBtn.classList.remove('hidden');
+
+                            // Start fresh camera session
+                            await this.startCamera(videoElement);
+                            console.log('[FACE] Camera restarted - ready for fresh verification attempt');
+                        });
+                    }
                 }
-            });
+            };
+
+            // Attach verify handler
+            verifyBtn.addEventListener('click', performVerification);
 
             // Close button
             closeBtn.addEventListener('click', () => {
+                console.log('[FACE] User closed modal');
                 this.stopCamera();
                 document.body.removeChild(modal);
                 resolve(false);
@@ -185,6 +257,7 @@ class FaceVerification {
 
             // Skip button
             skipBtn.addEventListener('click', () => {
+                console.log('[FACE] User skipped verification');
                 this.stopCamera();
                 document.body.removeChild(modal);
                 resolve(false);
@@ -497,44 +570,114 @@ class FaceVerification {
 
     /**
      * Capture photo from video stream
+     * 
+     * STATE ISOLATION FIX:
+     * - Creates a FRESH canvas for each capture
+     * - No reuse of previous canvas state
+     * - Each capture is completely independent
      */
     capturePhoto(videoElement) {
-        this.canvas.width = videoElement.videoWidth;
-        this.canvas.height = videoElement.videoHeight;
-        this.ctx.drawImage(videoElement, 0, 0);
-        return this.canvas.toDataURL('image/jpeg', 0.8);
+        console.log('[FACE] Capturing fresh photo from video stream...');
+
+        // Create FRESH canvas for this capture (not reusing this.canvas)
+        // This ensures no state contamination from previous captures
+        const captureCanvas = document.createElement('canvas');
+        const captureCtx = captureCanvas.getContext('2d');
+
+        captureCanvas.width = videoElement.videoWidth;
+        captureCanvas.height = videoElement.videoHeight;
+        captureCtx.drawImage(videoElement, 0, 0);
+
+        const imageData = captureCanvas.toDataURL('image/jpeg', 0.8);
+        console.log('[FACE] Photo captured, data length:', imageData.length);
+
+        return imageData;
     }
 
     /**
      * Compare two face images using multiple verification techniques
      * Uses histogram comparison, structural similarity, and edge detection
+     * 
+     * STATE ISOLATION FIX:
+     * - Each comparison is completely stateless
+     * - Fresh images created for each attempt
+     * - No cached results or persistent state
+     * - Proper error handling to prevent hanging
      */
     async compareFaces(faceData1, faceData2) {
+        // LOG: Fresh verification attempt started
+        console.log('========================================');
+        console.log('[FACE] New verification attempt started');
+        console.log('[FACE] Reference data length:', faceData1?.length || 0);
+        console.log('[FACE] Captured data length:', faceData2?.length || 0);
+        console.log('========================================');
+
+        // Validate input data
+        if (!faceData1 || !faceData2) {
+            console.error('[FACE] Invalid face data provided');
+            return false;
+        }
+
         return new Promise((resolve) => {
-            // Create temporary images
+            // Create FRESH temporary images for this attempt only
+            // These are isolated and do not persist
             const img1 = new Image();
             const img2 = new Image();
 
             let loaded = 0;
+            let hasResolved = false; // Prevent double resolution
+
+            // Timeout to prevent hanging if images fail to load
+            const timeout = setTimeout(() => {
+                if (!hasResolved) {
+                    console.error('[FACE] Image loading timeout - verification failed');
+                    hasResolved = true;
+                    resolve(false);
+                }
+            }, 5000);
+
             const onLoad = () => {
                 loaded++;
-                if (loaded === 2) {
-                    // Multi-factor comparison
-                    const results = this.performMultiFactorComparison(img1, img2);
+                console.log(`[FACE] Image ${loaded}/2 loaded`);
 
-                    // Log results for debugging
-                    console.log('Face Comparison Results:', results);
+                if (loaded === 2 && !hasResolved) {
+                    clearTimeout(timeout);
+                    hasResolved = true;
 
-                    // Require ALL checks to pass for verification
-                    const isMatch = results.overallMatch;
+                    try {
+                        // Perform FRESH comparison - no cached state
+                        console.log('[FACE] Both images loaded, performing fresh comparison...');
+                        const results = this.performMultiFactorComparison(img1, img2);
 
-                    console.log(`Final Decision: ${isMatch ? 'MATCH' : 'NO MATCH'}`);
-                    resolve(isMatch);
+                        // Log fresh results for debugging
+                        console.log('[FACE] Computed similarity:', results.scores.weighted);
+                        console.log('[FACE] Verification result:', results.overallMatch ? 'PASS' : 'FAIL');
+
+                        // Return fresh result - no caching
+                        resolve(results.overallMatch);
+                    } catch (error) {
+                        console.error('[FACE] Comparison error:', error);
+                        resolve(false);
+                    }
                 }
             };
 
+            const onError = (e) => {
+                console.error('[FACE] Image load error:', e);
+                if (!hasResolved) {
+                    clearTimeout(timeout);
+                    hasResolved = true;
+                    resolve(false);
+                }
+            };
+
+            // Attach handlers
             img1.onload = onLoad;
             img2.onload = onLoad;
+            img1.onerror = onError;
+            img2.onerror = onError;
+
+            // Load images from data - fresh each time
             img1.src = faceData1;
             img2.src = faceData2;
         });
