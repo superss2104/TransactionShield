@@ -1,0 +1,185 @@
+/**
+ * TransactionShield - Global Navigation Bar Styles
+ * Modern fintech design with fixed top position
+ */
+
+/* ============= NAVBAR CONTAINER ============= */
+.ts-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    border-bottom: 1px solid rgba(79, 209, 197, 0.2);
+}
+
+/* ============= BRAND / LOGO ============= */
+.navbar-brand {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #4fd1c5;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    letter-spacing: 0.5px;
+}
+
+.navbar-brand::before {
+    content: '🛡️';
+    font-size: 1.5rem;
+}
+
+/* ============= NAV TABS ============= */
+.navbar-tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.4rem;
+    border-radius: 12px;
+}
+
+.nav-tab {
+    padding: 0.6rem 1.5rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.nav-tab:hover:not(.disabled) {
+    color: #fff;
+    background: rgba(79, 209, 197, 0.15);
+}
+
+.nav-tab.active {
+    color: #fff;
+    background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+    box-shadow: 0 4px 15px rgba(79, 209, 197, 0.3);
+}
+
+/* Disabled state for locked tabs (first-time users) */
+.nav-tab.disabled {
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.nav-tab.disabled::after {
+    content: '🔒';
+    font-size: 0.7rem;
+    margin-left: 0.3rem;
+}
+
+/* ============= USER SECTION ============= */
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.navbar-username {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.navbar-username::before {
+    content: '👤';
+}
+
+.logout-btn {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid rgba(255, 107, 107, 0.5);
+    color: #ff6b6b;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 107, 107, 0.15);
+    border-color: #ff6b6b;
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
+}
+
+/* ============= BODY PADDING FOR FIXED NAVBAR ============= */
+body.has-navbar {
+    padding-top: 80px;
+}
+
+/* ============= RESPONSIVE DESIGN ============= */
+@media (max-width: 768px) {
+    .ts-navbar {
+        padding: 0 1rem;
+        flex-wrap: wrap;
+        height: auto;
+        padding: 0.5rem 1rem;
+    }
+
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+
+    .navbar-tabs {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        margin-top: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .nav-tab {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+    }
+
+    .navbar-user {
+        gap: 0.5rem;
+    }
+
+    .navbar-username {
+        display: none;
+    }
+
+    body.has-navbar {
+        padding-top: 120px;
+    }
+}
+
+/* ============= LOADING STATE ============= */
+.navbar-loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* ============= ANIMATION ============= */
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.ts-navbar {
+    animation: slideDown 0.3s ease-out;
+}

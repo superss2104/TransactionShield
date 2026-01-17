@@ -1,0 +1,174 @@
+{
+  "test_cases": [
+    {
+      "name": "Normal Transaction - Low Risk",
+      "description": "Typical transaction within user's normal patterns",
+      "data": {
+        "amount": 5000,
+        "user_avg_amount": 5000,
+        "retry_count": 0,
+        "location_changed": false,
+        "hour_of_day": 14,
+        "liveness_passed": true,
+        "liveness_confidence": 0.95,
+        "user_id": "user_001",
+        "transaction_id": "txn_normal_001"
+      },
+      "expected_decision": "ALLOW",
+      "expected_risk_range": [0.0, 0.3]
+    },
+    {
+      "name": "Slightly Elevated Amount - Low Risk",
+      "description": "Transaction slightly above average but still normal",
+      "data": {
+        "amount": 8000,
+        "user_avg_amount": 5000,
+        "retry_count": 0,
+        "location_changed": false,
+        "hour_of_day": 10,
+        "liveness_passed": true,
+        "liveness_confidence": 0.9,
+        "user_id": "user_002",
+        "transaction_id": "txn_normal_002"
+      },
+      "expected_decision": "ALLOW",
+      "expected_risk_range": [0.1, 0.3]
+    },
+    {
+      "name": "Suspicious - High Amount",
+      "description": "Transaction amount significantly higher than average",
+      "data": {
+        "amount": 50000,
+        "user_avg_amount": 5000,
+        "retry_count": 0,
+        "location_changed": false,
+        "hour_of_day": 14,
+        "liveness_passed": true,
+        "liveness_confidence": 0.9,
+        "user_id": "user_003",
+        "transaction_id": "txn_suspicious_001"
+      },
+      "expected_decision": "DELAY",
+      "expected_risk_range": [0.3, 0.6]
+    },
+    {
+      "name": "Suspicious - Location Change + Late Night",
+      "description": "Transaction from unusual location at unusual time",
+      "data": {
+        "amount": 15000,
+        "user_avg_amount": 5000,
+        "retry_count": 1,
+        "location_changed": true,
+        "hour_of_day": 2,
+        "liveness_passed": true,
+        "liveness_confidence": 0.75,
+        "user_id": "user_004",
+        "transaction_id": "txn_suspicious_002"
+      },
+      "expected_decision": "DELAY",
+      "expected_risk_range": [0.3, 0.6]
+    },
+    {
+      "name": "Suspicious - Multiple Retries",
+      "description": "Several retry attempts with moderate amount",
+      "data": {
+        "amount": 10000,
+        "user_avg_amount": 5000,
+        "retry_count": 3,
+        "location_changed": false,
+        "hour_of_day": 16,
+        "liveness_passed": true,
+        "liveness_confidence": 0.8,
+        "user_id": "user_005",
+        "transaction_id": "txn_suspicious_003"
+      },
+      "expected_decision": "DELAY",
+      "expected_risk_range": [0.3, 0.6]
+    },
+    {
+      "name": "Fraud - High Amount + Multiple Retries",
+      "description": "Large transaction with many failed attempts",
+      "data": {
+        "amount": 100000,
+        "user_avg_amount": 5000,
+        "retry_count": 5,
+        "location_changed": false,
+        "hour_of_day": 14,
+        "liveness_passed": true,
+        "liveness_confidence": 0.7,
+        "user_id": "user_006",
+        "transaction_id": "txn_fraud_001"
+      },
+      "expected_decision": "BLOCK",
+      "expected_risk_range": [0.6, 1.0]
+    },
+    {
+      "name": "Fraud - Failed Liveness",
+      "description": "Transaction with failed liveness verification",
+      "data": {
+        "amount": 20000,
+        "user_avg_amount": 5000,
+        "retry_count": 2,
+        "location_changed": true,
+        "hour_of_day": 3,
+        "liveness_passed": false,
+        "liveness_confidence": 0.3,
+        "user_id": "user_007",
+        "transaction_id": "txn_fraud_002"
+      },
+      "expected_decision": "BLOCK",
+      "expected_risk_range": [0.6, 1.0]
+    },
+    {
+      "name": "Fraud - All Red Flags",
+      "description": "Maximum risk across all dimensions",
+      "data": {
+        "amount": 150000,
+        "user_avg_amount": 5000,
+        "retry_count": 5,
+        "location_changed": true,
+        "hour_of_day": 3,
+        "liveness_passed": false,
+        "liveness_confidence": 0.2,
+        "user_id": "user_008",
+        "transaction_id": "txn_fraud_003"
+      },
+      "expected_decision": "BLOCK",
+      "expected_risk_range": [0.8, 1.0]
+    },
+    {
+      "name": "Edge Case - Boundary Low",
+      "description": "Risk score just below DELAY threshold",
+      "data": {
+        "amount": 7500,
+        "user_avg_amount": 5000,
+        "retry_count": 1,
+        "location_changed": false,
+        "hour_of_day": 12,
+        "liveness_passed": true,
+        "liveness_confidence": 0.85,
+        "user_id": "user_009",
+        "transaction_id": "txn_edge_001"
+      },
+      "expected_decision": "ALLOW",
+      "expected_risk_range": [0.25, 0.35]
+    },
+    {
+      "name": "Edge Case - Boundary High",
+      "description": "Risk score just below BLOCK threshold",
+      "data": {
+        "amount": 40000,
+        "user_avg_amount": 5000,
+        "retry_count": 3,
+        "location_changed": true,
+        "hour_of_day": 23,
+        "liveness_passed": true,
+        "liveness_confidence": 0.6,
+        "user_id": "user_010",
+        "transaction_id": "txn_edge_002"
+      },
+      "expected_decision": "DELAY",
+      "expected_risk_range": [0.5, 0.65]
+    }
+  ]
+}

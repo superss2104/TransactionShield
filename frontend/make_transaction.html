@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Make Transaction - TransactionShield</title>
+    <link rel="stylesheet" href="navbar.css">
+    <link rel="stylesheet" href="transaction_styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+</head>
+
+<body>
+    <!-- Navbar injected by navbar.js -->
+    <!-- Config must load first (defines API_BASE_URL) -->
+    <script src="config.js"></script>
+    <script src="navbar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => initNavbar('transactions'));
+    </script>
+
+    <div class="layout-container">
+
+        <!-- TRANSACTION FORM -->
+        <section class="fintech-card">
+            <div class="header-section">
+                <h1>Make Transaction</h1>
+                <p>Secure Transfer • <span id="display-time">--:--</span></p>
+            </div>
+
+            <form id="transactionForm" class="transaction-form">
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="sender_id">From Account (User ID)</label>
+                        <input type="text" id="sender_id" name="sender_id" value="demo_user" placeholder="Enter User ID"
+                            required>
+                        <span class="helper-text">Your unique profile ID</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="receiver_id">To Account</label>
+                        <input type="text" id="receiver_id" name="receiver_id" placeholder="e.g. merchant_01" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="amount">Amount (₹)</label>
+                        <input type="number" id="amount" name="amount" placeholder="0.00" min="1" step="0.01" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="txn_type">Transaction Type</label>
+                        <select id="txn_type" name="txn_type">
+                            <option value="transfer">Bank Transfer</option>
+                            <option value="payment">Online Payment</option>
+                            <option value="atm">ATM Withdrawal</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="channel">Channel</label>
+                        <select id="channel" name="channel">
+                            <option value="web">Web Portal</option>
+                            <option value="mobile">Mobile App</option>
+                            <option value="atm">ATM</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="location">Current Location</label>
+                        <input type="text" id="location" name="location" placeholder="City, Region" value="Mumbai"
+                            required>
+                        <span class="helper-text">We verify this against your history</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="note">Note (Optional)</label>
+                        <input type="text" id="note" name="note" placeholder="Rent, Dinner, etc.">
+                    </div>
+                </div>
+
+                <button type="submit" id="submit-btn" class="submit-btn">
+                    <span class="btn-text">Verify & Send</span>
+                    <div class="loader" style="display: none;"></div>
+                </button>
+
+            </form>
+        </section>
+
+        <!-- RESULTS SECTION (Right Side / Bottom) -->
+        <section id="result-section" class="result-section">
+            <div class="result-card">
+                <div class="status-icon-large" id="status-icon">?</div>
+                <h2 class="status-title" id="status-title">Ready</h2>
+                <p class="status-message" id="status-message">Transaction analysis will appear here.</p>
+
+                <div class="analysis-details">
+                    <h3>Behavioral Analysis</h3>
+                    <ul id="factor-list" class="factor-list">
+                        <!-- Items injected by JS -->
+                        <li class="factor-item">
+                            <div class="factor-icon">?</div>
+                            <span>Waiting for input...</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script src="face-verification.js"></script>
+    <script src="transaction_logic.js"></script>
+</body>
+
+</html>

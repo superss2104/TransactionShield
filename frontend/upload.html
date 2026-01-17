@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload History - TransactionShield</title>
+    <link rel="stylesheet" href="navbar.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .upload-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            color: #4fd1c5;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1rem;
+        }
+
+        .upload-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(79, 209, 197, 0.2);
+        }
+
+        .dropzone {
+            border: 2px dashed rgba(79, 209, 197, 0.4);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        .dropzone:hover,
+        .dropzone.dragover {
+            border-color: #4fd1c5;
+            background: rgba(79, 209, 197, 0.1);
+        }
+
+        .dropzone-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .dropzone h3 {
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .dropzone p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+
+        #historyFile {
+            display: none;
+        }
+
+        .file-info {
+            display: none;
+            background: rgba(79, 209, 197, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(79, 209, 197, 0.3);
+        }
+
+        .file-info.visible {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .file-details {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+        }
+
+        .file-name {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .file-size {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+        }
+
+        .remove-file {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .format-info {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .format-info h4 {
+            color: #4fd1c5;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .format-info code {
+            display: block;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: #a0aec0;
+        }
+
+        .upload-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 209, 197, 0.3);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .success-card {
+            display: none;
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .success-card.visible {
+            display: block;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .success-card h2 {
+            color: #4fd1c5;
+            margin-bottom: 1rem;
+        }
+
+        .success-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            color: #4fd1c5;
+            font-weight: 600;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+        }
+
+        .continue-btn {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .onboarding-message {
+            background: linear-gradient(135deg, rgba(79, 209, 197, 0.15) 0%, rgba(79, 209, 197, 0.05) 100%);
+            border: 1px solid rgba(79, 209, 197, 0.3);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .onboarding-message.hidden {
+            display: none;
+        }
+
+        .onboarding-icon {
+            font-size: 1.5rem;
+        }
+
+        .onboarding-text {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .onboarding-text strong {
+            color: #4fd1c5;
+        }
+
+        .error-message {
+            display: none;
+            background: rgba(255, 107, 107, 0.15);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            color: #ff6b6b;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        .debug-info {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #a0aec0;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .debug-info.visible {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Config must load first (defines API_BASE_URL) -->
+    <script src="config.js"></script>
+    <script src="navbar.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', () => initNavbar('upload'));</script>
+
+    <div class="upload-container">
+        <div class="page-header">
+            <h1>📊 Upload Transaction History</h1>
+            <p>Import your past transactions to enable smart fraud detection</p>
+        </div>
+
+        <div class="onboarding-message" id="onboardingMessage">
+            <span class="onboarding-icon">👋</span>
+            <div class="onboarding-text">
+                <strong>Welcome!</strong> Upload your transaction history to complete setup.
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="upload-card" id="uploadCard">
+            <div class="dropzone" id="dropzone" onclick="document.getElementById('historyFile').click()">
+                <div class="dropzone-icon">📁</div>
+                <h3>Drop your CSV file here</h3>
+                <p>or click to browse</p>
+            </div>
+            <input type="file" id="historyFile" accept=".csv">
+            <div class="file-info" id="fileInfo">
+                <div class="file-details">
+                    <span class="file-icon">📄</span>
+                    <div>
+                        <div class="file-name" id="fileName"></div>
+                        <div class="file-size" id="fileSize"></div>
+                    </div>
+                </div>
+                <button class="remove-file" onclick="removeFile()">✕</button>
+            </div>
+            <div class="format-info">
+                <h4>📋 Required CSV Format</h4>
+                <code>amount,time,location,date<br>5000,14:30:00,home_atm,2025-01-15</code>
+            </div>
+            <button class="upload-btn" id="uploadBtn" onclick="uploadHistory()" disabled>Upload & Continue</button>
+            <div class="debug-info" id="debugInfo"></div>
+        </div>
+
+        <div class="upload-card success-card" id="successCard">
+            <div class="success-icon">✅</div>
+            <h2>Upload Successful!</h2>
+            <p>Your transaction history has been imported.</p>
+            <div class="success-stats">
+                <div class="stat">
+                    <div class="stat-value" id="statCount">0</div>
+                    <div class="stat-label">Transactions</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="statAvg">₹0</div>
+                    <div class="stat-label">Avg Amount</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="statLocations">0</div>
+                    <div class="stat-label">Locations</div>
+                </div>
+            </div>
+            <button class="continue-btn" onclick="goToDashboard()">Continue to Dashboard →</button>
+        </div>
+    </div>
+
+    <script>
+        // REQUIRED CSV HEADERS - validates before upload
+        const REQUIRED_HEADERS = ['amount', 'time', 'location', 'date'];
+        var selectedFile = null;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            setupDropzone();
+            var hasUploaded = localStorage.getItem('hasUploadedHistory') === 'true';
+            document.getElementById('onboardingMessage').classList.toggle('hidden', hasUploaded);
+        });
+
+        function setupDropzone() {
+            var dropzone = document.getElementById('dropzone');
+            var fileInput = document.getElementById('historyFile');
+
+            dropzone.addEventListener('dragover', function (e) { e.preventDefault(); dropzone.classList.add('dragover'); });
+            dropzone.addEventListener('dragleave', function () { dropzone.classList.remove('dragover'); });
+            dropzone.addEventListener('drop', function (e) {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) validateAndSetFile(e.dataTransfer.files[0]);
+            });
+            fileInput.addEventListener('change', function (e) {
+                if (e.target.files.length > 0) validateAndSetFile(e.target.files[0]);
+            });
+        }
+
+        // CSV HEADER VALIDATION - validates before enabling upload
+        async function validateAndSetFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showError('Please upload a .csv file');
+                return;
+            }
+            try {
+                var text = await file.text();
+                var lines = text.trim().split('\n');
+                if (lines.length < 2) {
+                    showError('CSV must have a header row and at least one data row');
+                    return;
+                }
+                var headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+                var missing = REQUIRED_HEADERS.filter(h => !headers.includes(h));
+                if (missing.length > 0) {
+                    showError('Missing required columns: ' + missing.join(', '));
+                    return;
+                }
+                var dataRows = lines.slice(1).filter(l => l.trim());
+                if (dataRows.length < 3) {
+                    showError('CSV must contain at least 3 transactions. Found: ' + dataRows.length);
+                    return;
+                }
+                // Validation passed
+                selectedFile = file;
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = formatFileSize(file.size) + ' (' + dataRows.length + ' rows)';
+                document.getElementById('fileInfo').classList.add('visible');
+                document.getElementById('dropzone').style.display = 'none';
+                document.getElementById('uploadBtn').disabled = false;
+                hideError();
+            } catch (e) {
+                showError('Error reading file: ' + e.message);
+            }
+        }
+
+        function removeFile() {
+            selectedFile = null;
+            document.getElementById('fileInfo').classList.remove('visible');
+            document.getElementById('dropzone').style.display = 'block';
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('historyFile').value = '';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        async function uploadHistory() {
+            if (!selectedFile) return;
+            var btn = document.getElementById('uploadBtn');
+            var debug = document.getElementById('debugInfo');
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
+            debug.classList.add('visible');
+            debug.textContent = 'Starting upload...\n';
+
+            try {
+                var authToken = localStorage.getItem('authToken');
+                debug.textContent += 'Auth: ' + (authToken ? 'OK' : 'MISSING') + '\n';
+                if (!authToken) {
+                    showError('Not authenticated. Please log in first.');
+                    resetButton(btn);
+                    return;
+                }
+
+                var text = await selectedFile.text();
+                var lines = text.trim().split('\n');
+                var transactions = lines.slice(1).filter(l => l.trim());
+                debug.textContent += 'Transactions: ' + transactions.length + '\n';
+
+                // Calculate stats for display
+                var totalAmount = 0, locations = new Set();
+                transactions.forEach(line => {
+                    var parts = line.split(',');
+                    if (parts[0]) totalAmount += parseFloat(parts[0]) || 0;
+                    if (parts[2]) locations.add(parts[2].trim());
+                });
+                var avgAmount = transactions.length > 0 ? totalAmount / transactions.length : 0;
+
+                var formData = new FormData();
+                formData.append('file', selectedFile);
+                debug.textContent += 'Sending to: ' + API_BASE_URL + '/upload-history\n';
+
+                var response = await fetch(API_BASE_URL + '/upload-history', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + authToken },
+                    body: formData
+                });
+
+                debug.textContent += 'Status: ' + response.status + '\n';
+                var responseText = await response.text();
+                debug.textContent += 'Response: ' + responseText.substring(0, 200) + '\n';
+
+                if (response.ok) {
+                    // SUCCESS: Update localStorage and show success
+                    localStorage.setItem('hasUploadedHistory', 'true');
+                    localStorage.setItem('onboardingComplete', 'true');
+                    if (typeof unlockAllTabs === 'function') unlockAllTabs();
+
+                    document.getElementById('uploadCard').style.display = 'none';
+                    document.getElementById('successCard').classList.add('visible');
+                    document.getElementById('onboardingMessage').classList.add('hidden');
+                    document.getElementById('statCount').textContent = transactions.length;
+                    document.getElementById('statAvg').textContent = '₹' + Math.round(avgAmount).toLocaleString();
+                    document.getElementById('statLocations').textContent = locations.size;
+                } else {
+                    var errorMsg = 'Upload failed';
+                    try { errorMsg = JSON.parse(responseText).detail || errorMsg; } catch (e) { errorMsg = responseText || errorMsg; }
+                    showError(errorMsg);
+                    resetButton(btn);
+                }
+            } catch (error) {
+                debug.textContent += 'ERROR: ' + error.message + '\n';
+                showError('Upload error: ' + error.message);
+                resetButton(btn);
+            }
+        }
+
+        function resetButton(btn) { btn.disabled = false; btn.textContent = 'Upload & Continue'; }
+        function showError(msg) { var el = document.getElementById('errorMessage'); el.textContent = msg; el.classList.add('visible'); }
+        function hideError() { document.getElementById('errorMessage').classList.remove('visible'); }
+        function goToDashboard() { window.location.href = 'dashboard.html'; }
+    </script>
+</body>
+
+</html>

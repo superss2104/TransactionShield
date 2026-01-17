@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Registration - TransactionShield</title>
+    <link rel="stylesheet" href="navbar.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .face-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            color: #4fd1c5;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1rem;
+        }
+
+        .step-indicator {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+
+        .step-indicator strong {
+            color: #4fd1c5;
+        }
+
+        .face-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(79, 209, 197, 0.2);
+        }
+
+        /* Video container with face guide */
+        .video-container {
+            position: relative;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            aspect-ratio: 4/3;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            /* Mirror effect */
+        }
+
+        .video-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .face-guide-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .face-guide {
+            width: 220px;
+            height: 280px;
+            border: 3px dashed rgba(79, 209, 197, 0.6);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.02);
+            }
+        }
+
+        .camera-status {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff5555;
+        }
+
+        .status-dot.active {
+            background: #4fd1c5;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Preview image */
+        .preview-container {
+            display: none;
+        }
+
+        .preview-container.visible {
+            display: block;
+        }
+
+        .preview-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        /* Captured badge */
+        .captured-badge {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            background: rgba(79, 209, 197, 0.9);
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .captured-badge.visible {
+            display: block;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .instructions h3 {
+            color: #4fd1c5;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .instructions ul {
+            padding-left: 1.5rem;
+        }
+
+        .instructions li {
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Buttons container */
+        .btn-container {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+            color: #fff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 209, 197, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: #fff;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .error-message {
+            display: none;
+            background: rgba(255, 107, 107, 0.15);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            color: #ff6b6b;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        .success-card {
+            display: none;
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .success-card.visible {
+            display: block;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .success-card h2 {
+            color: #4fd1c5;
+            margin-bottom: 1rem;
+        }
+
+        .continue-btn {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .continue-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 209, 197, 0.3);
+        }
+
+        /* Loading spinner */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+            border-radius: 12px;
+        }
+
+        .loading-overlay.visible {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(79, 209, 197, 0.2);
+            border-top-color: #4fd1c5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .skip-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .skip-link a {
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .skip-link a:hover {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Config must load first (defines API_BASE_URL) -->
+    <script src="config.js"></script>
+    <script src="navbar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => initNavbar('upload'));
+    </script>
+
+    <div class="face-container">
+        <div class="page-header">
+            <h1>Face Registration</h1>
+            <p>Secure your account with biometric verification</p>
+        </div>
+
+        <div class="step-indicator">
+            <strong>Step 1 of 2:</strong> Face Registration
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="face-card" id="faceCard">
+            <!-- Video/Camera Container -->
+            <div class="video-container" id="videoContainer">
+                <video id="faceVideo" autoplay playsinline></video>
+                <img id="facePreview" class="hidden" alt="Captured face">
+
+                <div class="face-guide-overlay">
+                    <div class="face-guide" id="faceGuide"></div>
+                </div>
+
+                <div class="camera-status" id="cameraStatus">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Initializing camera...</span>
+                </div>
+
+                <div class="captured-badge" id="capturedBadge">Photo Captured</div>
+
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <span>Processing...</span>
+                </div>
+            </div>
+
+            <div class="instructions">
+                <h3>Instructions</h3>
+                <ul>
+                    <li>Position your face within the oval guide</li>
+                    <li>Ensure good, even lighting on your face</li>
+                    <li>Remove glasses or hats if possible</li>
+                    <li>Look directly at the camera</li>
+                    <li>Keep a neutral expression</li>
+                </ul>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="btn-container">
+                <button id="captureBtn" class="btn btn-primary" disabled>
+                    <span>Capture Photo</span>
+                </button>
+                <button id="retakeBtn" class="btn btn-secondary hidden">
+                    <span>Retake</span>
+                </button>
+                <button id="confirmBtn" class="btn btn-success hidden">
+                    <span>Confirm & Save</span>
+                </button>
+            </div>
+
+            <div class="skip-link">
+                <a href="#" onclick="skipRegistration(); return false;">Skip for now (you can register later)</a>
+            </div>
+        </div>
+
+        <div class="face-card success-card" id="successCard">
+            <div class="success-icon">&#10004;</div>
+            <h2>Face Registered Successfully!</h2>
+            <p>Your biometric data has been securely stored locally.</p>
+            <p style="margin-top: 1rem; color: rgba(255, 255, 255, 0.6);">
+                This will be used for identity verification during high-risk transactions.
+            </p>
+            <button class="continue-btn" onclick="goToUpload()">Continue to Upload History</button>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let videoStream = null;
+        let capturedImageData = null;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // DOM Elements
+        const videoElement = document.getElementById('faceVideo');
+        const previewElement = document.getElementById('facePreview');
+        const captureBtn = document.getElementById('captureBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const faceGuide = document.getElementById('faceGuide');
+        const capturedBadge = document.getElementById('capturedBadge');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if user is authenticated
+            const authToken = localStorage.getItem('authToken');
+            if (!authToken) {
+                showError('Not authenticated. Please log in first.');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+                return;
+            }
+
+            // Start camera
+            await startCamera();
+
+            // Set up button handlers
+            captureBtn.addEventListener('click', capturePhoto);
+            retakeBtn.addEventListener('click', retakePhoto);
+            confirmBtn.addEventListener('click', confirmAndSave);
+        });
+
+        /**
+         * Start the camera stream
+         */
+        async function startCamera() {
+            try {
+                statusText.textContent = 'Starting camera...';
+
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+
+                videoElement.srcObject = videoStream;
+
+                // Wait for video to be ready
+                videoElement.onloadedmetadata = () => {
+                    statusDot.classList.add('active');
+                    statusText.textContent = 'Camera ready';
+                    captureBtn.disabled = false;
+                };
+
+            } catch (error) {
+                console.error('Camera access error:', error);
+
+                if (error.name === 'NotAllowedError') {
+                    showError('Camera access denied. Please allow camera access in your browser settings and refresh the page.');
+                } else if (error.name === 'NotFoundError') {
+                    showError('No camera found. Please connect a camera and refresh the page.');
+                } else {
+                    showError('Failed to access camera: ' + error.message);
+                }
+
+                statusText.textContent = 'Camera error';
+                statusDot.style.background = '#ff5555';
+            }
+        }
+
+        /**
+         * Stop the camera stream
+         */
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+        }
+
+        /**
+         * Capture photo from video stream
+         */
+        function capturePhoto() {
+            if (!videoStream) {
+                showError('Camera not available');
+                return;
+            }
+
+            // Capture frame from video
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            ctx.drawImage(videoElement, 0, 0);
+
+            // Convert to data URL
+            capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
+
+            // Show preview
+            previewElement.src = capturedImageData;
+            previewElement.classList.remove('hidden');
+            videoElement.classList.add('hidden');
+            faceGuide.style.display = 'none';
+
+            // Update buttons
+            captureBtn.classList.add('hidden');
+            retakeBtn.classList.remove('hidden');
+            confirmBtn.classList.remove('hidden');
+
+            // Show captured badge
+            capturedBadge.classList.add('visible');
+            statusText.textContent = 'Photo captured';
+        }
+
+        /**
+         * Retake photo - go back to camera view
+         */
+        function retakePhoto() {
+            capturedImageData = null;
+
+            // Show video again
+            previewElement.classList.add('hidden');
+            videoElement.classList.remove('hidden');
+            faceGuide.style.display = 'block';
+
+            // Update buttons
+            captureBtn.classList.remove('hidden');
+            retakeBtn.classList.add('hidden');
+            confirmBtn.classList.add('hidden');
+
+            // Hide badge
+            capturedBadge.classList.remove('visible');
+            statusText.textContent = 'Camera ready';
+        }
+
+        /**
+         * Confirm photo and save to backend
+         */
+        async function confirmAndSave() {
+            if (!capturedImageData) {
+                showError('No photo captured');
+                return;
+            }
+
+            // Show loading
+            loadingOverlay.classList.add('visible');
+            confirmBtn.disabled = true;
+            retakeBtn.disabled = true;
+
+            try {
+                const authToken = localStorage.getItem('authToken');
+
+                // Save face data to localStorage (for client-side verification)
+                localStorage.setItem('userFaceData', capturedImageData);
+
+                // Create metadata for backend
+                const metadata = {
+                    timestamp: new Date().toISOString(),
+                    device: 'webcam',
+                    quality: 'high',
+                    resolution: `${canvas.width}x${canvas.height}`,
+                    format: 'jpeg'
+                };
+
+                // Register with backend
+                const response = await fetch(`${API_BASE_URL}/register-face`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ metadata })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+
+                    // Update localStorage
+                    localStorage.setItem('faceRegistered', 'true');
+
+                    // Stop camera
+                    stopCamera();
+
+                    // Show success
+                    document.getElementById('faceCard').style.display = 'none';
+                    document.getElementById('successCard').classList.add('visible');
+
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Face registration failed');
+                    loadingOverlay.classList.remove('visible');
+                    confirmBtn.disabled = false;
+                    retakeBtn.disabled = false;
+                }
+
+            } catch (error) {
+                console.error('Registration error:', error);
+                showError('Registration error: ' + error.message);
+                loadingOverlay.classList.remove('visible');
+                confirmBtn.disabled = false;
+                retakeBtn.disabled = false;
+            }
+        }
+
+        /**
+         * Skip face registration
+         */
+        function skipRegistration() {
+            if (confirm('Are you sure you want to skip face registration? You can register later from settings.')) {
+                stopCamera();
+                goToUpload();
+            }
+        }
+
+        /**
+         * Navigate to upload page
+         */
+        function goToUpload() {
+            window.location.href = 'upload.html';
+        }
+
+        /**
+         * Show error message
+         */
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('visible');
+        }
+
+        /**
+         * Hide error message
+         */
+        function hideError() {
+            errorMessage.classList.remove('visible');
+        }
+
+        // Cleanup on page leave
+        window.addEventListener('beforeunload', () => {
+            stopCamera();
+        });
+    </script>
+</body>
+
+</html>

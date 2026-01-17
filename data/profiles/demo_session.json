@@ -1,0 +1,46 @@
+{
+  "user_id": "demo_session",
+  "learning_enabled": true,
+  "amount_mean": 4885.714285714285,
+  "amount_std": 766.8736780560656,
+  "amount_count": 7,
+  "hour_histogram": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    1,
+    1,
+    0,
+    1,
+    1,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "transaction_count": 7,
+  "trusted_locations": [
+    {
+      "name": "work_branch",
+      "added_at": "2026-01-16T22:33:37.072168"
+    },
+    {
+      "name": "home_atm",
+      "added_at": "2026-01-16T22:33:37.073167"
+    }
+  ],
+  "created_at": "2026-01-16T22:33:37.072168",
+  "updated_at": "2026-01-16T22:33:37.076168"
+}

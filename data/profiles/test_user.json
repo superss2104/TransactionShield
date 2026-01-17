@@ -1,0 +1,42 @@
+{
+  "user_id": "test_user",
+  "learning_enabled": true,
+  "amount_mean": 5000.0,
+  "amount_std": 2000.0,
+  "amount_count": 0,
+  "hour_histogram": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "transaction_count": 0,
+  "trusted_locations": [
+    {
+      "name": "home_atm",
+      "added_at": "2026-01-16T09:44:45.242358"
+    }
+  ],
+  "created_at": "2026-01-16T09:44:45.242358",
+  "updated_at": "2026-01-16T09:44:45.242358"
+}

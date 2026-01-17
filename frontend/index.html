@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransactionShield - Setup</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- ==================== Auth Section ==================== -->
+    <div class="auth-wrapper" id="authSection">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo">
+                    <svg class="shield-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                    <h1>TransactionShield</h1>
+                </div>
+                <p class="subtitle">Secure Fraud Prevention Platform</p>
+            </div>
+
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="showTab('login')" id="loginTabBtn">Sign In</button>
+                <button class="tab-btn" onclick="showTab('register')" id="registerTabBtn">Create Account</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginTab" class="tab-content active">
+                <form class="auth-form" onsubmit="event.preventDefault(); login();">
+                    <div class="input-group">
+                        <input type="text" id="loginUsername" placeholder=" " required>
+                        <label>Username</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="loginPassword" placeholder=" " required>
+                        <label>Password</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <span>Sign In</span>
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerTab" class="tab-content">
+                <form class="auth-form" onsubmit="event.preventDefault(); register();">
+                    <div class="input-group">
+                        <input type="text" id="regUsername" placeholder=" " required>
+                        <label>Choose Username</label>
+                        <span class="input-hint">Minimum 3 characters</span>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="regPassword" placeholder=" " required>
+                        <label>Create Password</label>
+                        <span class="input-hint">Minimum 6 characters</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <span>Create Account</span>
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
+
+            <div class="auth-footer">
+                <p>🔒 Your data is encrypted and stored locally</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Onboarding Section ==================== -->
+    <div class="onboarding-wrapper" id="onboardingSection" style="display: none;">
+
+        <!-- Header -->
+        <header class="onboarding-header">
+            <div class="logo">
+                <svg class="shield-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <h1>TransactionShield</h1>
+            </div>
+            <p class="subtitle">Personalized Fraud Protection Setup</p>
+            <div class="user-badge" id="userBadge">
+                <span id="usernameDisplay"></span>
+                <button class="btn-link" onclick="logout()">Sign Out</button>
+            </div>
+        </header>
+
+        <!-- Upload Card (Before Upload) -->
+        <div class="onboarding-card" id="uploadCard">
+            <div class="step-indicator">
+                <span class="step-badge">Required Step</span>
+            </div>
+
+            <h2>Upload Your Past Transactions</h2>
+            <p class="card-description">
+                This helps us understand your normal transaction behavior and provide personalized fraud protection.
+            </p>
+
+            <!-- Format Example -->
+            <div class="format-example">
+                <p class="format-label">CSV Format Required:</p>
+                <pre class="code-block">amount,hour,location
+5000,10,home_atm
+4500,14,work_branch
+3200,17,home_atm</pre>
+            </div>
+
+            <!-- Upload Zone -->
+            <div class="upload-zone" id="uploadDropzone">
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <p class="upload-text">Drag and drop your CSV file here</p>
+                <p class="upload-or">or</p>
+                <button class="btn btn-secondary btn-browse" onclick="document.getElementById('historyFile').click()">
+                    Browse Files
+                </button>
+                <input type="file" id="historyFile" accept=".csv" hidden>
+            </div>
+
+            <!-- File Preview -->
+            <div id="filePreview" class="file-preview" style="display: none;">
+                <div class="file-info">
+                    <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                    </svg>
+                    <div>
+                        <p class="file-name" id="fileName"></p>
+                        <p class="file-size" id="fileSize"></p>
+                    </div>
+                </div>
+                <button class="btn-remove" onclick="removeFile()">✕</button>
+            </div>
+
+            <!-- Upload Button -->
+            <button id="uploadBtn" class="btn btn-primary btn-large" disabled onclick="uploadHistory()">
+                <span>Upload & Continue</span>
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Success Card (After Upload) -->
+        <div class="onboarding-card success-card" id="successCard" style="display: none;">
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                    <path d="M22 4L12 14.01l-3-3" />
+                </svg>
+            </div>
+
+            <h2>Setup Complete!</h2>
+            <p class="success-message">Your transaction history has been uploaded successfully.</p>
+            <p class="success-submessage">Your personalized fraud protection is now ready.</p>
+
+            <!-- Stats Summary -->
+            <div class="stats-grid" id="uploadStats">
+                <div class="stat-item">
+                    <span class="stat-value" id="statCount">0</span>
+                    <span class="stat-label">Transactions</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statAvg">₹0</span>
+                    <span class="stat-label">Avg Amount</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statLocations">0</span>
+                    <span class="stat-label">Locations</span>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="nav-buttons">
+                <button class="btn btn-primary btn-nav" onclick="showComingSoon('Transactions')">
+                    <svg class="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+                        <rect x="9" y="3" width="6" height="4" rx="2" />
+                    </svg>
+                    Go to Transactions
+                </button>
+                <button class="btn btn-secondary btn-nav" onclick="showComingSoon('Dashboard')">
+                    <svg class="btn-icon-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                    Go to Dashboard
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="onboarding-footer">
+            <p>🔒 Your data is stored locally and used only for fraud prevention.</p>
+            <p class="version">TransactionShield v3.1.0</p>
+        </footer>
+    </div>
+
+    <!-- ==================== Coming Soon Modal ==================== -->
+    <div class="modal-overlay" id="comingSoonModal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-icon">🚧</div>
+            <h3>Page Under Development</h3>
+            <p id="modalMessage">This feature is coming soon.</p>
+            <button class="btn btn-primary" onclick="closeModal()">Got it</button>
+        </div>
+    </div>
+
+    <!-- ==================== Error Toast ==================== -->
+    <div id="errorToast" class="error-toast" style="display: none;">
+        <span id="errorMessage"></span>
+    </div>
+
+    <!-- Config must load first (defines API_BASE_URL) -->
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
